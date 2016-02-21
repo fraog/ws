@@ -37,7 +37,7 @@ You could then read a response from the server to stdout (or any other Writer) l
 
 	err = conn.ReadTo(os.Stdout)
 	if err != nil {
-		t.Errorf("Error reading response from server.", err)
+		//Error reading response from server
 	}
 
 
