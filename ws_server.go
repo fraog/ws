@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"net"
 	"net/http"
+	"time"
 )
-
-
 
 /*
 A WebSocket server.
 */
 type Server struct {
 	net.Listener
+	clients map[int64]Conn
+	Handler Handler
 }
 
 /*
@@ -38,7 +39,8 @@ func (s *Server) Accept() (*Conn, error) {
 		return nil, e
 	}
 
-	wsc := Conn{c, false}
+	wsc := Conn{c, false, time.Now().Unix(), s.Handler}
+	s.clients[wsc.id] = wsc
 	return &wsc, nil
 }
 
@@ -56,12 +58,8 @@ func (s *Server) Serve(handler func(*Conn, []byte)) error {
 		}
 
 		//Handle client concurrently
-		//TODO: I would like to catch errors from this or route them to a place where I could evaluate them
+		c.Handler = s.Handler
 		go c.Handle(handler)
 	}
 	return nil
 }
-
-
-
-

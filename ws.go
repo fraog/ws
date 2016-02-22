@@ -4,18 +4,17 @@ package ws
 
 import (
 	"bufio"
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/base64"
+	"errors"
 	"net"
 	"net/http"
-	"errors"
-	"crypto/sha1"
-	"crypto/rand"
-	"encoding/base64"
 )
 
 const (
 	wsHash = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 )
-
 
 /*
 Dials a connection to a webserver at the specified host.
@@ -34,22 +33,20 @@ func Dial(host string) (*Conn, error) {
 		return nil, e
 	}
 
-
 	//Read Response
 	res, e := http.ReadResponse(bufio.NewReader(c), nil)
 	if e != nil {
 		return nil, e
 	}
-	
+
 	if res == nil {
 		return nil, errors.New("Did not get accept response from server.")
 	}
-	
-		
+
 	//TODO: Verify accept key?
 	//fmt.Printf("AcceptKey: %s\n", res.Header.Get("Sec-WebSocket-Accept"))
-	
-	return &Conn{c, true}, nil
+
+	return &Conn{c, true, 0, nil}, nil
 }
 
 /*
@@ -68,28 +65,28 @@ func DialProtocol(host string, proto string) (*Conn, error) {
 	if e != nil {
 		return nil, e
 	}
-	
+
 	//Add protocol to header
 	req.Header.Add("Sec-WebSocket-Protocol", proto)
 
 	//Read response
-	reader := bufio.NewReader(c)	
+	reader := bufio.NewReader(c)
 	res, e := http.ReadResponse(reader, nil)
 	if e != nil {
 		return nil, e
 	}
-	
+
 	if res == nil {
 		return nil, errors.New("Did not get accept response from server.")
 	}
-		
+
 	//TODO: Verify accept key?
 	//fmt.Printf("AcceptKey: %s\n", res.Header.Get("Sec-WebSocket-Accept"))
-	
+
 	//TODO: Verify protocol?
 	//fmt.Printf("AcceptProto: %s\n", res.Header.Get("Sec-WebSocket-Protocol"))
 
-	return &Conn{c, true}, nil
+	return &Conn{c, true, 0, nil}, nil
 }
 
 /*
@@ -102,14 +99,14 @@ func Listen(host string) (*Server, error) {
 	if s, e = net.Listen("tcp", host); e != nil {
 		return nil, e
 	}
-	return &Server{s}, nil
+	return &Server{s, make(map[int64]Conn), nil}, nil
 }
 
 /*
 Creates a new server, listening on host and serves with handler function.
 Returns an error if encountered.
 */
-func ListenAndServe(host string, handler func(conn *Conn, message []byte)) error {
+func ListenAndServe(host string, handler func(*Conn, []byte)) error {
 	var s *Server
 	var e error
 	if s, e = Listen(host); e != nil {
@@ -117,8 +114,6 @@ func ListenAndServe(host string, handler func(conn *Conn, message []byte)) error
 	}
 	return s.Serve(handler)
 }
-
-
 
 /*
 Creates a websocket key for a websocket request
@@ -170,4 +165,3 @@ func createAcceptResponse(req *http.Request) *http.Response {
 	}
 	return response
 }
-

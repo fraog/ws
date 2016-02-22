@@ -41,10 +41,78 @@ You could then read a response from the server to stdout (or any other Writer) l
 	}
 
 
-Additionally, you could use a handler with a client connection as well, instead of ReadTo:
+Additionally, you could use a handler function with a client connection as well, instead of ReadTo:
 
 	conn.Handle(func(c *ws.Conn, m []byte) {
 		fmt.Printf("Client got response: %s\n", string(m))
 	})
+
+## Handlers:
+
+Handlers provide an additional layer of processing data.
+
+Below is the basic implementation of MessageHandler. It simply extracts a key from the beginning of the message
+and routes the rest of the data to a map of handler functions, the return value signals that whether the message was handled:
+
+	type MessageHandler map[string]func(*Conn, []byte) bool
+
+	func (mh *MessageHandler) Handle(c *Conn, msg []byte) bool {
+			
+		buffer := bytes.NewBuffer(msg)
+		
+		key, e := buffer.ReadString(':')
+		if e != nil {
+			return false
+		}
+		key = key[:len(key)]
+		
+		if handler, k := (*mh)[key]; k {
+			return handler(c, buffer.Bytes())
+		}
+		
+		return false
+	}
+
+You could use a MessageHandler like so:
+
+	server, err := ws.Listen(":1337")
+	if err != nil {
+		//Error starting server
+	}
+
+	mh := NewMessageHandler()
+	mh["greeting"] = func(c *Conn, m []byte) bool {
+		fmt.Printf("Client said hello: %s\n", string(m))
+		c.Write([]byte("Hello, client."))
+		return true
+	}
+	
+	mh["farewell"] = func(c *Conn, m []byte) bool {
+		fmt.Printf("Client said goodbye: %s\n", string(m))
+		c.Write([]byte("Goodbye, client."))
+		return true
+	}
+	
+	server.Handler = &mh
+	server.Serve(func(c *Conn, m []byte) {
+		fmt.Printf("Server got unhandled message: %s\n", string(m))
+	})
+	
+A client connection can also have a Handler:
+
+	conn, err := ws.Dial(":1337")
+	if err != nil {
+		//Error dialing server
+	}
+	
+	mh := NewMessageHandler()
+	mh["print"] = func(c *Conn, m []byte) bool {
+		fmt.Printf(string(m))
+		return true
+	}
+	
+	conn.Handler = &mh
+	conn.Handle()
+
 
 
