@@ -1,5 +1,9 @@
 # Simple WebSockets for fun
 
+## Installation:
+
+	go get github.com/fraog/ws
+
 ## Examples:
 
 Creating a very simple WebSocket server that replies with "Hello, client.":
@@ -41,7 +45,7 @@ You could then read a response from the server to stdout (or any other Writer) l
 	}
 
 
-Additionally, you could use a handler function with a client connection as well, instead of ReadTo:
+Additionally, you could use a handler function with a client connection, instead of ReadTo:
 
 	conn.Handle(func(c *ws.Conn, m []byte) {
 		fmt.Printf("Client got response: %s\n", string(m))
@@ -51,8 +55,8 @@ Additionally, you could use a handler function with a client connection as well,
 
 Handlers provide an additional layer of processing data.
 
-Below is the basic implementation of MessageHandler. It simply extracts a key from the beginning of the message
-and routes the rest of the data to a map of handler functions, the return value signals that whether the message was handled:
+Below is the basic implementation of MessageHandler. It extracts a key from the beginning of the message, finds the handler function associated with that key (if it exists),
+and routes the rest of the data to it. The return value of Handle signals whether or not the message was handled. If the return value is false, the data is sent to the default handler function (if it exists):
 
 	type MessageHandler map[string]func(*Conn, []byte) bool
 
@@ -80,21 +84,21 @@ You could use a MessageHandler like so:
 		//Error starting server
 	}
 
-	mh := NewMessageHandler()
-	mh["greeting"] = func(c *Conn, m []byte) bool {
+	mh := ws.NewMessageHandler()
+	mh["greeting"] = func(c *ws.Conn, m []byte) bool {
 		fmt.Printf("Client said hello: %s\n", string(m))
 		c.Write([]byte("Hello, client."))
 		return true
 	}
 	
-	mh["farewell"] = func(c *Conn, m []byte) bool {
+	mh["farewell"] = func(c *ws.Conn, m []byte) bool {
 		fmt.Printf("Client said goodbye: %s\n", string(m))
 		c.Write([]byte("Goodbye, client."))
 		return true
 	}
 	
 	server.Handler = &mh
-	server.Serve(func(c *Conn, m []byte) {
+	server.Serve(func(c *ws.Conn, m []byte) {
 		fmt.Printf("Server got unhandled message: %s\n", string(m))
 	})
 	
@@ -105,8 +109,8 @@ A client connection can also have a Handler:
 		//Error dialing server
 	}
 	
-	mh := NewMessageHandler()
-	mh["print"] = func(c *Conn, m []byte) bool {
+	mh := ws.NewMessageHandler()
+	mh["print"] = func(c *ws.Conn, m []byte) bool {
 		fmt.Printf(string(m))
 		return true
 	}

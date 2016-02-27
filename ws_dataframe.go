@@ -37,7 +37,9 @@ type DataFrame struct {
 func NewFrame(message []byte) *DataFrame {
 	var f DataFrame
 	f = DataFrame{msbOn, 1, 0, nil, 0, nil, 0}
-	f.SetDataLength(len(message))
+	if message != nil {
+		f.SetDataLength(len(message))
+	}
 	return &f
 }
 

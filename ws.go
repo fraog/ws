@@ -46,7 +46,7 @@ func Dial(host string) (*Conn, error) {
 	//TODO: Verify accept key?
 	//fmt.Printf("AcceptKey: %s\n", res.Header.Get("Sec-WebSocket-Accept"))
 
-	return &Conn{c, true, 0, nil}, nil
+	return &Conn{c, true, 0, nil, nil, nil}, nil
 }
 
 /*
@@ -86,7 +86,7 @@ func DialProtocol(host string, proto string) (*Conn, error) {
 	//TODO: Verify protocol?
 	//fmt.Printf("AcceptProto: %s\n", res.Header.Get("Sec-WebSocket-Protocol"))
 
-	return &Conn{c, true, 0, nil}, nil
+	return &Conn{c, true, 0, nil, nil, nil}, nil
 }
 
 /*
@@ -99,7 +99,7 @@ func Listen(host string) (*Server, error) {
 	if s, e = net.Listen("tcp", host); e != nil {
 		return nil, e
 	}
-	return &Server{s, make(map[int64]Conn), nil}, nil
+	return &Server{s, make(map[int64]*Conn), nil, nil, nil}, nil
 }
 
 /*

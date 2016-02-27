@@ -1,26 +1,49 @@
 package ws
 
 import (
-	"net"
-	"io"
 	"bytes"
+	"io"
+	"net"
 )
 
 /*
 A WebSocket connection.
 */
 type Conn struct {
-	nc     net.Conn
-	client bool
-	id     int64
+	nc      net.Conn
+	client  bool
+	id      int64
 	Handler Handler
+	server  *Server
+	OnClose func(*Conn)
+}
+
+/*
+Get the unique ID associated with this connection.
+*/
+func (c *Conn) Id() int64 {
+	return c.id
+}
+
+/*
+Returns true if this connection is a client connected to a server.
+*/
+func (c *Conn) IsClient() bool {
+	return c.client
+}
+
+/*
+Returns the base net.Conn interface belonging to this connection.
+*/
+func (c *Conn) Base() net.Conn {
+	return c.nc
 }
 
 /*
 Reads a framed message to the connection and writes it to a Writer.
 */
 func (c *Conn) ReadTo(w io.Writer) error {
-	
+
 	var f DataFrame
 	var e error
 
@@ -33,7 +56,8 @@ func (c *Conn) ReadTo(w io.Writer) error {
 	if f.op > opBinary {
 		switch f.op {
 		case opClose:
-			c.nc.Close()
+			//TODO: This closes WHILE sending a response Close frame
+			c.Close()
 			return nil
 		case opPing:
 			return nil
@@ -74,11 +98,18 @@ func (c *Conn) Write(b []byte) (int, error) {
 }
 
 /*
+Writes a framed message to the connection as a string.
+*/
+func (c *Conn) WriteString(msg string) (int, error) {
+	return c.Write([]byte(msg))
+}
+
+/*
 Listen on connection continuously, routing to messages to handler.
 */
 func (c *Conn) Handle(handler func(*Conn, []byte)) error {
 
-	var e error		
+	var e error
 
 	for {
 		var buffer bytes.Buffer
@@ -86,13 +117,13 @@ func (c *Conn) Handle(handler func(*Conn, []byte)) error {
 		if e != nil {
 			return e
 		}
-		
+
 		if c.Handler != nil {
 			if c.Handler.Handle(c, buffer.Bytes()) {
 				continue
 			}
 		}
-		
+
 		if handler != nil {
 			handler(c, buffer.Bytes())
 		}
@@ -103,8 +134,20 @@ func (c *Conn) Handle(handler func(*Conn, []byte)) error {
 Closes a websocket connection.
 */
 func (c *Conn) Close() error {
+	//Close callback
+	if c.OnClose != nil {
+		c.OnClose(c)
+	}
+
+	//Send a close frame
+	df := NewFrame(nil)
+	df.op = opClose
+	df.WriteTo(c.nc)
+
+	//If its a server connection, remove from clients
+	if c.server != nil {
+		delete(c.server.Clients, c.id)
+	}
+
 	return c.nc.Close()
 }
-
-
-

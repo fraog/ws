@@ -1,0 +1,71 @@
+<!doctype html>
+
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Chat Example</title>
+<style>
+#chatform {
+	position: fixed;
+	bottom: 15px;
+	padding-left: 1%;
+	width: 98%;
+	white-space: nowrap;
+}
+
+#chatinput {
+	padding: 5px;
+	width: 95%;
+}
+
+#chatbutton {
+	padding: 5px;
+}
+
+#chatmessages {
+	box-sizing: border-box;
+	padding: 5px;
+	padding-bottom: 30px;
+	width: 98%;
+	list-style-type: none;
+}
+</style>
+</head>
+
+<body>
+	<script>
+    	window.onload = function() {
+    	
+    		//Connect to server and setup a callback for receiving messages
+    		var ws = new WebSocket("ws://localhost:7331");
+			ws.onmessage = function(msg) {
+				var node = document.createElement("li");
+				node.appendChild(document.createTextNode(msg.data));
+				document.getElementById("chatmessages").appendChild(node);
+			};
+			
+    		//Setup a form callback to send the value of input to the websocket
+			var input = document.getElementById("chatinput");
+			document.getElementById("chatform").onsubmit = function(evt) {
+				ws.send(input.value);
+				input.value = "";
+				return false;
+			};
+			
+			//Make input always focused
+			input.onblur = function() {
+				input.focus();
+			};
+			input.focus();
+			
+    	};
+	</script>
+
+	<ul id="chatmessages"></ul>
+	<form id="chatform">
+		<input id="chatinput" autocomplete="off"></input>
+		<button id="chatbutton">Send</button>
+	</form>
+
+</body>
+</html>

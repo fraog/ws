@@ -23,21 +23,18 @@ func (mh *MessageHandler) RemoveHandler(key string) {
 }
 
 func (mh *MessageHandler) Handle(c *Conn, msg []byte) bool {
-		
+
 	buffer := bytes.NewBuffer(msg)
-	
+
 	key, e := buffer.ReadString(':')
 	if e != nil {
 		return false
 	}
-	key = key[:len(key)]
-	
+	key = key[:len(key)-1]
+
 	if handler, k := (*mh)[key]; k {
 		return handler(c, buffer.Bytes())
 	}
-	
+
 	return false
 }
-
-
-

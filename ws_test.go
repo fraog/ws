@@ -3,9 +3,9 @@ package ws
 import (
 	"fmt"
 	//"os"
+	"bytes"
 	"testing"
 	"time"
-	"bytes"
 )
 
 func TestFrame(t *testing.T) {
@@ -67,9 +67,9 @@ func TestMaskIO(t *testing.T) {
 }
 
 func TestClientServer(t *testing.T) {
-	
+
 	var err error
-	
+
 	var server *Server
 	server, err = Listen(":7331")
 	if err != nil {
@@ -91,39 +91,33 @@ func TestClientServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error dialing server.", err)
 	}
-	
+
 	//Add a callback on a goroutine
 	go conn.Handle(func(c *Conn, m []byte) { //<-- this one allows for possible polymorphism?
 		fmt.Printf("Client got message: %s\n", string(m))
 		return
 	})
-	
+
 	//Sleep for a bit to let the client listen
 	time.Sleep(100 * time.Millisecond)
-	
+
 	//Write to the connection
 	_, err = conn.Write([]byte("Hello, server."))
 	if err != nil {
 		t.Errorf("Error writing to server connection.", err)
 	}
-	
+
 	/*
-	//Now read from it
-	err = conn.ReadTo(os.Stdout)
-	if err != nil {
-		t.Errorf("Error reading response from server.", err)
-	}
+		//Now read from it
+		err = conn.ReadTo(os.Stdout)
+		if err != nil {
+			t.Errorf("Error reading response from server.", err)
+		}
 	*/
-	
+
 	time.Sleep(1000 * time.Millisecond)
-	
-	
+
 	//fmt.Printf("Close server and connection.\n")
 	server.Close()
 	conn.Close()
 }
-
-
-
-
-
