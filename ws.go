@@ -17,7 +17,7 @@ const (
 )
 
 /*
-Dials a connection to a webserver at the specified host.
+Dial dials a connection to a webserver at the specified host.
 Returns the connection or an error if no connection was made.
 */
 func Dial(host string) (*Conn, error) {
@@ -50,7 +50,7 @@ func Dial(host string) (*Conn, error) {
 }
 
 /*
-Dials a connection to a webserver with protocols specified.
+DialProtocol dials a connection to a webserver with protocols specified.
 Returns the connection or an error if no connection was made.
 */
 func DialProtocol(host string, proto string) (*Conn, error) {
@@ -90,7 +90,7 @@ func DialProtocol(host string, proto string) (*Conn, error) {
 }
 
 /*
-Creates a new server, listening on host.
+Listen creates a new server, listening on host.
 Returns nil and error if an error was encountered.
 */
 func Listen(host string) (*Server, error) {
@@ -99,11 +99,11 @@ func Listen(host string) (*Server, error) {
 	if s, e = net.Listen("tcp", host); e != nil {
 		return nil, e
 	}
-	return &Server{s, make(map[int64]*Conn), nil, nil, nil}, nil
+	return &Server{s, make(map[int64]*Conn), nil, nil, nil, nil, nil}, nil
 }
 
 /*
-Creates a new server, listening on host and serves with handler function.
+ListenAndServe creates a new server, listening on host and serves with handler function.
 Returns an error if encountered.
 */
 func ListenAndServe(host string, handler func(*Conn, []byte)) error {

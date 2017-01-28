@@ -26,11 +26,14 @@ func (mh *JSONMessageHandler) Handle(c *Conn, msg []byte) bool {
 
 	key, e := buffer.ReadString(':')
 	if e != nil {
+		fmt.Println("Error reading key string.")
 		return false
 	}
 	key = key[:len(key)-1]
 
 	if handler, k := (*mh)[key]; k {
+
+		//fmt.Printf("JSONRAW:%s\n", buffer.Bytes())
 
 		var f interface{}
 		e = json.Unmarshal(buffer.Bytes(), &f)

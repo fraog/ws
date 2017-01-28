@@ -2,6 +2,7 @@ package ws
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 )
@@ -57,6 +58,7 @@ func (c *Conn) ReadTo(w io.Writer) error {
 		switch f.op {
 		case opClose:
 			//TODO: This closes WHILE sending a response Close frame
+			fmt.Println("Received close opcode.")
 			c.Close()
 			return nil
 		case opPing:
@@ -76,7 +78,6 @@ func (c *Conn) ReadTo(w io.Writer) error {
 		if _, e = io.CopyN(w, c.nc, int64(f.length)); e != nil {
 			return e
 		}
-
 	}
 	return nil
 }
@@ -87,6 +88,7 @@ Writes a framed message to the connection.
 func (c *Conn) Write(b []byte) (int, error) {
 	frame := NewFrame(b)
 	if !c.client {
+		//FIXME: SHould i be writing all at once? Sometimes th client reads just the frame
 		frame.WriteTo(c.nc)
 		c.nc.Write(b)
 	} else {
@@ -115,7 +117,8 @@ func (c *Conn) Handle(handler func(*Conn, []byte)) error {
 		var buffer bytes.Buffer
 		e = c.ReadTo(&buffer)
 		if e != nil {
-			return e
+			fmt.Printf("Error reading from connection: %s\n", e)
+			return c.Close()
 		}
 
 		if c.Handler != nil {
@@ -134,6 +137,9 @@ func (c *Conn) Handle(handler func(*Conn, []byte)) error {
 Closes a websocket connection.
 */
 func (c *Conn) Close() error {
+
+	fmt.Println("Connection closed.")
+
 	//Close callback
 	if c.OnClose != nil {
 		c.OnClose(c)
@@ -147,6 +153,7 @@ func (c *Conn) Close() error {
 	//If its a server connection, remove from clients
 	if c.server != nil {
 		delete(c.server.Clients, c.id)
+		fmt.Printf("Client close, number of clients is now %v.\n", len(c.server.Clients))
 	}
 
 	return c.nc.Close()
